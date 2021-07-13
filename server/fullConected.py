@@ -1,74 +1,86 @@
 import numpy as np
 import scipy as sc
 
+#Creacion de las funciones de activacion
+sigmoide= (lambda x: 1 / (1 + np.power(np.e, (-x))), lambda x: np.array(x) * np.array(1-x))
+relu = lambda x: np.maximum(0,x)
 
-class NeuralLayer():
-    def __init__(self, nConnections, nNeuron, fActivation):
-        self.fActivation = fActivation
-        self.b = (np.random.rand(1, nNeuron) * 2)-1
-        self.w = (np.random.rand(nConnections, nNeuron) * 2)-1
-
-
-def NetCreation(distribution, fActivation):
-    neuralNet = []
-    for i, layer in enumerate(distribution[:-1]):
-        neuralLayer = NeuralLayer(
-            distribution[i], distribution[i+1], fActivation)
-        neuralNet.append(neuralLayer)
-    return neuralNet
+#Funcion de coste tipo error cuadratico medio
+fCoste = (lambda Yp, Yr: np.mean(np.power((Yp-Yr),2)), lambda Yp, Yr: (Yp-Yr))
 
 
-def predict(neuralNet, X, Y, fCost):
+#Creacion de la topologia o distribucion de la red
+distribucion = [ 2 ,8,10 , 1]
+neuralNet =[]
+#Creacion de una clase que da el comportamiento de una capa de neuronas
+class capaNeuronal():
+  def __init__(self, nConexiones, nNeurona, fActivacion):
+    self.fActivacion=fActivacion
+    self.b = (np.random.rand(1,nNeurona) * 2)-1
+    self.w = (np.random.rand(nConexiones,nNeurona) * 2)-1
 
-    results = [(None, X)]
-    for i, layer in enumerate(neuralNet):
-        z = results[-1][1] @ neuralNet[i].w + neuralNet[i].b
-        a = neuralNet[i].fActivation[0](z)
-        results.append((z, a))
-    coste = fCost[0](results[-1][1], Y)
-    prediction = (coste, results)
-    return prediction
+def creacionRed (distribucion, fActivacion ):
+  redNeuronal =[]
+  for i,capa in enumerate(distribucion[:-1]):
+    capaNeural=capaNeuronal(distribucion[i], distribucion[i+1],fActivacion)
+    redNeuronal.append(capaNeural)
+  return redNeuronal
 
-def train(neuralNet, X, Y, fCost, learningLevel):
-    prediction = predict(neuralNet, X, Y, fCost)
-    deltas = []
-    for i in reversed(range(1, len(neuralNet)+1)):
-        z = prediction[1][i][0]
-        a = prediction[1][i][1]
-        if i == (len(neuralNet)):
-            deltas.insert(0, fCost[1](a, Y)*neuralNet[i-1].fActivation[1](a))
-        else:
-            deltas.insert(0, deltas[0] @ W.T *
-                          neuralNet[i-1].fActivation[1](a))
+#Funcion de predicciones de la red
+def predecir (redNeuronal,X,Y,fCoste):
 
-        W = neuralNet[i-1].w
+  resultados = [(None, X)]
+  #Analisis de datos(forward pass)
+  for i, capa in enumerate(redNeuronal):
+    z= resultados[-1][1] @ redNeuronal[i].w + redNeuronal[i].b
+    a= redNeuronal[i].fActivacion[0](z)
+    resultados.append((z,a))
+  coste = fCoste[0](resultados[-1][1],Y)
+  prediccion= (coste,resultados)
+  return prediccion
 
-        neuralNet[i-1].b = neuralNet[i-1].b - \
-            (np.mean(deltas[0], axis=0, keepdims=True) * learningLevel)
-        neuralNet[i-1].w = neuralNet[i-1].w - \
-            ((prediction[1][i-1][1].T @ deltas[0]) * learningLevel)
+#Funcion de entrenamiento de la red 
+def entrenar(redNeuronal,X,Y,fCoste,nivelAprendizaje):
+  prediccion = predecir(redNeuronal,X,Y,fCoste)
+  #Creaciomn de seguimiento de error(Backward pass y back propagation)
+  deltas= []
+  for i in reversed(range(1,len(redNeuronal)+1)):
+    z = prediccion[1][i][0]
+    a = prediccion[1][i][1]
+    if i == (len(redNeuronal)):
+      #Calculo ultima capa
+      deltas.insert(0,np.array(fCoste[1](a,Y))*np.array(redNeuronal[i-1].fActivacion[1](a)) )  
+    else: 
+      #Calculo capas restantes     
+      deltas.insert(0,np.array(deltas[0] @ W.T) *np.array(redNeuronal[i-1].fActivacion[1](a)) )
 
+    #Guardo la  w sin optimizar
+    W= redNeuronal[i-1].w
 
-sigmoide = (lambda x: 1 / (1 + np.e ** (-x))), lambda x: x * (1-x)
-def relu(x): return np.maximum(0, x)
+    #Optimizacion por desenso del graciente( Gradient desend) 
+    redNeuronal[i-1].b = redNeuronal[i-1].b - (np.mean(deltas[0], axis=0, keepdims=True) * nivelAprendizaje)
+    redNeuronal[i-1].w = redNeuronal[i-1].w - ((prediccion[1][i-1][1].T @ deltas[0] ) * nivelAprendizaje)
 
-fCost = (lambda Yp, Yr: np.mean((Yp-Yr)**2), lambda Yp, Yr: (Yp-Yr))
-distribution = [2, 8, 10, 1]
+neuralNet=creacionRed(distribucion,sigmoide)
 
-def FullyConnect(X, Y):
-    neuralNet = NetCreation(distribution, sigmoide)
+def create(topology=distribucion, fActivation=sigmoide):
+    global neuralNet
+    neuralNet = creacionRed(topology, fActivation)
+
+def graph(X, Y):
+    X = np.asmatrix(X)
+    Y = np.asmatrix(Y)
     error = []
-    resolucion = 100
-    for i in range(5000):
-        train(neuralNet, X, Y, fCost, 0.015)
-        if (i % 50) == 0:
-            prediction = predict(neuralNet, X, Y, fCost)[0]
-            error.append(prediction)
-            xcero = np.linspace(-1.5, 1.5, resolucion)
-            xuno = np.linspace(-1.5, 1.5, resolucion)
-            y = np.zeros((resolucion, resolucion))
-
-            for icero, xceros in enumerate(xcero):
-                for iuno, xunos in enumerate(xuno):
-                    y[icero, iuno] = predict(neuralNet, np.array(
-                        [[xceros, xunos]]), Y, fCost)[1][-1][1][0][0]
+    resolucion = 50
+    for i in range(400):
+        entrenar(neuralNet, X, Y, fCoste, 0.009)
+        
+    prediction =predecir(neuralNet, X, Y, fCoste)[0]
+    error.append(prediction)
+    xcero = np.linspace(-1.5, 1.5, resolucion)
+    xuno = np.linspace(-1.5, 1.5, resolucion)
+    y = np.zeros((resolucion, resolucion))
+    for icero, xceros in enumerate(xcero):
+        for iuno, xunos in enumerate(xuno):
+            y[icero, iuno] = predecir(neuralNet, np.array([[xceros, xunos]]), Y, fCoste)[1][-1][1][0][0]
+    return y.tolist()

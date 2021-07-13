@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Document</title>
+		<script src="https://cdn.plot.ly/plotly-2.2.0.min.js"></script>
+	</head>
+	<body>
+		<div id="plot"></div>
+		<script>
+			const plot = (data) => {
+				layout = {
+					axis: {
+						range: [-1, 1],
+					},
+					autosize: false,
+					width: 700,
+					height: 700,
+					xaxis: {
+						fixedrange: true,
+					},
+					yaxis: {
+						fixedrange: true,
+					},
+				};
+
+				Plotly.newPlot("plot", data, layout, { displayModeBar: false });
+			};
+			const fetchData = async () => {
+				const response = await fetch("data.json");
+				const datas = await response.json();
+				const data = datas[0];
+				return { XY: data.X, Z: data.Y };
+			};
+			(async () => {
+				let { XY, Z } = await fetchData();
+				let blueDataset = [];
+				let redDataset = [];
+				for (let i = 0; i < Z.length; i++) {
+					if (Z[i][0] == 1) {
+						redDataset.push({
+							x: XY[i][0],
+							y: XY[i][1],
+						});
+					} else {
+						blueDataset.push({
+							x: XY[i][0],
+							y: XY[i][1],
+						});
+					}
+				}
+				data = [
+					{
+						x: Array.from(blueDataset, (xy) => xy.x),
+						y: Array.from(blueDataset, (xy) => xy.y),
+						mode: "markers",
+						type: "scatter",
+						marker: {
+							size: 12,
+							color: "skyblue",
+						},
+					},
+					{
+						x: Array.from(redDataset, (xy) => xy.x),
+						y: Array.from(redDataset, (xy) => xy.y),
+						mode: "markers",
+						type: "scatter",
+						marker: {
+							size: 12,
+							color: "salmon",
+						},
+					},
+				];
+				plot(data);
+				const rawResponse = await fetch("http://localhost:4000/dense", {
+					method: "POST",
+					headers: {
+						Accept: "application/json",
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({ XY, Z }),
+				});
+				let { y } = await rawResponse.json();
+
+				data.push({
+					x: Array.from(
+						{ length: 50 },
+						(_, i) => ((i - 25) / 25) * 1.5
+					),
+					y: Array.from(
+						{ length: 50 },
+						(_, i) => ((i - 25) / 25) * 1.5
+					),
+					z: y,
+					type: 'heatmap',
+					opacity: 0.85,
+					zsmooth: "best",
+				});
+				plot(data);
+			})();
+		</script>
+	</body>
+</html>
