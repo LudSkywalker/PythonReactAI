@@ -12,17 +12,16 @@
 		<script>
 			const plot = (data) => {
 				layout = {
-					axis: {
-						range: [-1, 1],
-					},
 					autosize: false,
 					width: 700,
 					height: 700,
 					xaxis: {
 						fixedrange: true,
+						range: [-1.5, 1.5],
 					},
 					yaxis: {
 						fixedrange: true,
+						range: [-1, 1],
 					},
 				};
 
@@ -94,7 +93,7 @@
 						(_, i) => ((i - 25) / 25) * 1.5
 					),
 					z: y,
-					type: 'heatmap',
+					type: "heatmap",
 					opacity: 0.85,
 					zsmooth: "best",
 				});
