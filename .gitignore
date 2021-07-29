@@ -3,3 +3,4 @@ client/.DS_Store
 client/dist
 client/dist-ssr
 client/*.local
+client/package-lock.json
