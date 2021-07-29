@@ -1,11 +1,9 @@
-import React from "react";
-import { Graph } from './components/Graph';
+import { Fragment } from 'react';
+
 export const App = () => {
-	return (
-		<React.Fragment>
-			hola mundo
-			<Graph />
-		</React.Fragment>
-	);
-};
- 
+  return (
+    <Fragment>
+      La App aqui
+    </Fragment>
+  );
+}
